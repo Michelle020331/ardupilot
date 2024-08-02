@@ -78,6 +78,9 @@ void ModeAuto::exit()
 #endif  // HAL_MOUNT_ENABLED
 
     auto_RTL = false;
+
+    // clear position offsets
+    pos_control->set_pos_offset_target_xy_cm(Vector2p{0, 0});
 }
 
 // auto_run - runs the auto controller

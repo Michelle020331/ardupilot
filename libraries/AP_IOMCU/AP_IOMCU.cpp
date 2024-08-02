@@ -43,6 +43,7 @@ enum ioevents {
     IOEVENT_SET_DSHOT_PERIOD,
     IOEVENT_SET_CHANNEL_MASK,
     IOEVENT_DSHOT,
+    IOEVENT_PROFILED,
 };
 
 // max number of consecutve protocol failures we accept before raising
@@ -89,6 +90,8 @@ void AP_IOMCU::init(void)
         crc_is_ok = true;
     }
 #endif
+
+    use_safety_as_led = boardconfig->use_safety_as_led();
 
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_IOMCU::thread_main, void), "IOMCU",
                                       1024, AP_HAL::Scheduler::PRIORITY_BOOST, 1)) {
@@ -300,6 +303,14 @@ void AP_IOMCU::thread_main(void)
             }
         }
         mask &= ~EVENT_MASK(IOEVENT_DSHOT);
+
+        if (mask & EVENT_MASK(IOEVENT_PROFILED)) {
+            if (!write_registers(PAGE_PROFILED, 0, sizeof(profiled)/sizeof(uint16_t), (const uint16_t*)&profiled)) {
+                event_failed(mask);
+                continue;
+            }
+        }
+        mask &= ~EVENT_MASK(IOEVENT_PROFILED);
 
         // check for regular timed events
         uint32_t now = AP_HAL::millis();
@@ -1411,6 +1422,22 @@ void AP_IOMCU::toggle_GPIO(uint8_t pin)
     }
     GPIO.output_mask ^= (1U << pin);
     trigger_event(IOEVENT_GPIO);
+}
+
+// set profiled R G B values
+void AP_IOMCU::set_profiled(uint8_t r, uint8_t g, uint8_t b)
+{
+    if (!use_safety_as_led) {
+        return;
+    }
+    if (r == profiled.red && g == profiled.green && b == profiled.blue) {
+        return;
+    }
+    profiled.magic = PROFILED_ENABLE_MAGIC;
+    profiled.red = r;
+    profiled.green = g;
+    profiled.blue = b;
+    trigger_event(IOEVENT_PROFILED);
 }
 
 

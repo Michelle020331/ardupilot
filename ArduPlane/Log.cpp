@@ -129,9 +129,10 @@ struct PACKED log_OFG_Guided {
     float target_airspeed_accel;
     float target_alt;
     float target_alt_accel;
-    uint8_t target_alt_frame;
+    uint8_t target_mav_frame;   // received MavLink frame
     float target_heading;
     float target_heading_limit;
+    uint8_t target_alt_frame;   // internal AltFrame
 };
 
 // Write a OFG Guided packet.
@@ -144,9 +145,10 @@ void Plane::Log_Write_OFG_Guided()
         target_airspeed_accel  : guided_state.target_airspeed_accel,
         target_alt             : guided_state.target_alt,
         target_alt_accel       : guided_state.target_alt_accel,
-        target_alt_frame       : guided_state.target_alt_frame,
+        target_mav_frame       : guided_state.target_mav_frame,
         target_heading         : guided_state.target_heading,
-        target_heading_limit   : guided_state.target_heading_accel_limit
+        target_heading_limit   : guided_state.target_heading_accel_limit,
+        target_alt_frame       : static_cast<uint8_t>(guided_state.target_alt_frame),
     };
     logger.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -491,11 +493,12 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: ArspA:  target airspeed accel
 // @Field: Alt:  target alt
 // @Field: AltA: target alt accel
-// @Field: AltF: target alt frame
+// @Field: AltF: target alt frame (MAVLink)
 // @Field: Hdg:  target heading
 // @Field: HdgA: target heading lim
+// @Field: AltL: target alt frame (Location)
     { LOG_OFG_MSG, sizeof(log_OFG_Guided),     
-      "OFG", "QffffBff",    "TimeUS,Arsp,ArspA,Alt,AltA,AltF,Hdg,HdgA", "s-------", "F-------" , true }, 
+      "OFG", "QffffBffB",    "TimeUS,Arsp,ArspA,Alt,AltA,AltF,Hdg,HdgA,AltL", "snnmo-d--", "F--------" , true }, 
 #endif
 };
 

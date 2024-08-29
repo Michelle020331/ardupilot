@@ -1079,18 +1079,30 @@ MSPCommandResult AP_MSP_Telem_Backend::msp_process_out_rc(sbuf_t *dst)
     float pitch = -rc().rc_channel(rcmap->pitch()-1)->norm_input_dz();
     float yaw = rc().rc_channel(rcmap->yaw()-1)->norm_input_dz();
     float throttle = rc().rc_channel(rcmap->throttle()-1)->norm_input_dz();
+    float aux1 = rc().rc_channel(4)->norm_input_dz();
+    float aux2 = rc().rc_channel(5)->norm_input_dz();
+    float aux3 = rc().rc_channel(6)->norm_input_dz();
+    float aux4 = rc().rc_channel(7)->norm_input_dz();
 
     const struct PACKED {
         uint16_t a;
         uint16_t e;
         uint16_t r;
         uint16_t t;
+        uint16_t aux1;
+        uint16_t aux2;
+        uint16_t aux3;
+        uint16_t aux4;
     } rc {
         // send only 4 channels, MSP order is AERT
         a : uint16_t(roll*500+1500),       // A
         e : uint16_t(pitch*500+1500),      // E
         r : uint16_t(yaw*500+1500),        // R
-        t : uint16_t(throttle*1000+1000)    // T
+        t : uint16_t(throttle*1000+1000),  // T
+        aux1 : uint16_t(aux1*500+1500),
+        aux2 : uint16_t(aux2*500+1500),
+        aux3 : uint16_t(aux3*500+1500),
+        aux4 : uint16_t(aux4*500+1500)
     };
 
     sbuf_write_data(dst, &rc, sizeof(rc));

@@ -258,7 +258,7 @@ void Plane::takeoff_calc_throttle() {
     if (aparm.takeoff_throttle_min != 0) {
         takeoff_state.throttle_lim_min = aparm.takeoff_throttle_min;
     } else {
-        takeoff_state.throttle_lim_min = aparm.throttle_min;
+        takeoff_state.throttle_lim_min = aparm.throttle_cruise;
     }
 
     // Raise min to force max throttle for TKOFF_THR_MAX_T after a takeoff.

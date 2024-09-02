@@ -155,7 +155,15 @@ void ModeCircle::update()
     // Update depending on stage
     if (!reached_edge) {
         update_drive_to_radius();
-
+    } else if (dist_to_edge_m > config.radius * 0.2 && !tracking_back) {
+        // if more than 20% inside or outside circle radius, slow vehicle
+        config.speed = 0.8 * config.speed;
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Circle: Vehicle unable to turn fast enough to track circle. Slowing vehicle to %.1fm/s", config.speed);
+        tracking_back = true;
+    } else if (dist_to_edge_m < config.radius * 0.05 && tracking_back) {
+        // if within 5% of circle radius, call the vehicle back on track
+        tracking_back = false;
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Circle: Vehicle back on circle");
     } else {
         update_circling();
     }
@@ -193,12 +201,16 @@ void ModeCircle::update_circling()
     const float accel_fb = constrain_float(config.speed - target.speed, -speed_change_max, speed_change_max);
     target.speed += accel_fb;
 
-    // calculate angular rate and update target angle
-    const float circumference = 2.0 * M_PI * config.radius;
-    const float angular_rate_rad = (target.speed / circumference) * M_2PI * (config.dir == Direction::CW ? 1.0 : -1.0);
-    const float angle_dt = angular_rate_rad * rover.G_Dt;
-    target.yaw_rad = wrap_PI(target.yaw_rad + angle_dt);
-    angle_total_rad += angle_dt;
+    // calculate angular rate and update target angle, if the vehicle is not trying to track back
+    if (!tracking_back) {
+        const float circumference = 2.0 * M_PI * config.radius;
+        const float angular_rate_rad = (target.speed / circumference) * M_2PI * (config.dir == Direction::CW ? 1.0 : -1.0);
+        const float angle_dt = angular_rate_rad * rover.G_Dt;
+        target.yaw_rad = wrap_PI(target.yaw_rad + angle_dt);
+        angle_total_rad += angle_dt;
+    } else {
+        init_target_yaw_rad();
+    }
 
     // calculate target point's position, velocity and acceleration
     target.pos = config.center_pos.topostype();

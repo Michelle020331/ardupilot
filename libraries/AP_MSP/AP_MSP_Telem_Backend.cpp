@@ -1079,10 +1079,10 @@ MSPCommandResult AP_MSP_Telem_Backend::msp_process_out_rc(sbuf_t *dst)
     float pitch = -rc().rc_channel(rcmap->pitch()-1)->norm_input_dz();
     float yaw = rc().rc_channel(rcmap->yaw()-1)->norm_input_dz();
     float throttle = rc().rc_channel(rcmap->throttle()-1)->norm_input_dz();
-    float aux1 = rc().rc_channel(4)->norm_input_dz();
-    float aux2 = rc().rc_channel(5)->norm_input_dz();
-    float aux3 = rc().rc_channel(6)->norm_input_dz();
-    float aux4 = rc().rc_channel(7)->norm_input_dz();
+    uint16_t aux1 = rc().rc_channel(4)->get_radio_in();
+    uint16_t aux2 = rc().rc_channel(5)->get_radio_in();
+    uint16_t aux3 = rc().rc_channel(6)->get_radio_in();
+    uint16_t aux4 = rc().rc_channel(7)->get_radio_in();
 
     const struct PACKED {
         uint16_t a;
@@ -1099,10 +1099,10 @@ MSPCommandResult AP_MSP_Telem_Backend::msp_process_out_rc(sbuf_t *dst)
         e : uint16_t(pitch*500+1500),      // E
         r : uint16_t(yaw*500+1500),        // R
         t : uint16_t(throttle*1000+1000),  // T
-        aux1 : uint16_t(aux1*500+1500),
-        aux2 : uint16_t(aux2*500+1500),
-        aux3 : uint16_t(aux3*500+1500),
-        aux4 : uint16_t(aux4*500+1500)
+        aux1 : aux1,
+        aux2 : aux2,
+        aux3 : aux3,
+        aux4 : aux4
     };
 
     sbuf_write_data(dst, &rc, sizeof(rc));

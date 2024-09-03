@@ -202,7 +202,8 @@ protected:
     void zero_throttle_and_hold_attitude();
 
     // Return stopping point as a location with above origin alt frame
-    Location get_stopping_point() const;
+    // subtract_pos_offsets should be true if the stopping point will be used as a position controller target (because the pos controller will add back the offsets)
+    Location get_stopping_point(bool subtract_pos_offsets = false) const;
 
     // functions to control normal landing.  pause_descent is true if vehicle should not descend
     void land_run_horizontal_control();

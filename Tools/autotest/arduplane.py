@@ -6052,6 +6052,43 @@ class AutoTestPlane(vehicle_test_suite.TestSuite):
             )
             self.disarm_vehicle()
 
+    def GliderPullup(self):
+        '''test pullup of glider after ALTITUDE_WAIT'''
+        self.start_subtest("test glider pullup")
+
+        self.customise_SITL_commandline(
+            [],
+            model="glider",
+            defaults_filepath="Tools/autotest/default_params/glider.parm",
+            wipe=True)
+
+        self.set_parameters({
+            "PUP_ENABLE": 1,
+            "SERVO6_FUNCTION": 0, # balloon lift
+            "SERVO10_FUNCTION": 156, # lift release
+            "EK3_IMU_MASK": 1, # lane switches just make log harder to read
+        })
+
+        self.set_servo(6, 1000)
+
+        self.load_mission("glider-pullup-mission.txt")
+        self.change_mode("AUTO")
+        self.wait_ready_to_arm()
+        self.arm_vehicle()
+        self.context_collect('STATUSTEXT')
+
+        self.progress("Start balloon lift")
+        self.set_servo(6, 2000)
+
+        self.wait_text("Reached altitude", check_context=True, timeout=300)
+        self.wait_text("Start pullup airspeed", check_context=True)
+        self.wait_text("Pullup airspeed", check_context=True)
+        self.wait_text("Pullup pitch", check_context=True)
+        self.wait_text("Pullup level", check_context=True)
+        self.wait_text("Mission complete, changing mode to RTL", check_context=True)
+
+        self.fly_home_land_and_disarm(timeout=400)
+
     def tests(self):
         '''return list of all tests'''
         ret = super(AutoTestPlane, self).tests()
@@ -6183,6 +6220,7 @@ class AutoTestPlane(vehicle_test_suite.TestSuite):
             self.GPSPreArms,
             self.SetHomeAltChange,
             self.ForceArm,
+            self.GliderPullup,
         ])
         return ret
 

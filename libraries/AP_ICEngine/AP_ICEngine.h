@@ -107,6 +107,10 @@ private:
     // delay between start attempts (seconds)
     AP_Float starter_delay;
 
+    // max crank retry
+    AP_Int8 max_crank_retry;
+    int8_t crank_retry_ct;
+    
 #if AP_RPM_ENABLED
     // RPM above which engine is considered to be running
     AP_Int32 rpm_threshold;

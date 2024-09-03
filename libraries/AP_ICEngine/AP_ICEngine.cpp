@@ -176,6 +176,13 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // This allows one time conversion while allowing user to flash between versions with and without converted params
     AP_GROUPINFO_FLAGS("FMT_VER", 19, AP_ICEngine, param_format_version, 0, AP_PARAM_FLAG_HIDDEN),
 
+    // @Param: STRT_MX_RTRY
+    // @DisplayName: Maximum number of retries
+    // @Description: If set 0 then there is no limit to retrials. If set to a value greater than 0 then the engine will retry starting the engine this many times before giving up.
+    // @User: Standard
+    // @Range: 0 127
+    AP_GROUPINFO("STRT_MX_RTRY", 20, AP_ICEngine, max_crank_retry, 0),
+
     AP_GROUPEND
 };
 
@@ -374,6 +381,7 @@ void AP_ICEngine::update(void)
         if (should_run) {
             state = ICE_START_DELAY;
         }
+        crank_retry_ct = 0;
         break;
 
     case ICE_START_HEIGHT_DELAY: {
@@ -397,8 +405,14 @@ void AP_ICEngine::update(void)
         if (!should_run) {
             state = ICE_OFF;
         } else if (now - starter_last_run_ms >= starter_delay*1000) {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Starting engine");
-            state = ICE_STARTING;
+            // check if we should retry starting the engine
+            if (max_crank_retry >= 0 && (max_crank_retry == 0 || crank_retry_ct < max_crank_retry)) {
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Starting engine");
+                state = ICE_STARTING;
+                crank_retry_ct++;
+            } else {                    
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Engine Max Crank Retry reached");
+            }
         }
         break;
 
@@ -422,9 +436,9 @@ void AP_ICEngine::update(void)
             float rpm_value;
             if (!AP::rpm()->get_rpm(rpm_instance-1, rpm_value) ||
                 rpm_value < rpm_threshold) {
-                // engine has stopped when it should be running
-                state = ICE_START_DELAY;
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Uncommanded engine stop");
+                    // engine has stopped when it should be running
+                    state = ICE_START_DELAY;
+                    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Uncommanded engine stop");
             }
         }
 #endif

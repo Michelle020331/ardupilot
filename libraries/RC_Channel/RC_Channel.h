@@ -10,6 +10,7 @@
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Common/Bitmask.h>
+#include <GCS_MAVLink/GCS.h>
 
 #define NUM_RC_CHANNELS 16
 
@@ -378,9 +379,12 @@ private:
 
     // pwm is stored here
     int16_t     radio_in;
+    // previous rc in, used to ignore small changes in radio_input_changed()
+    int16_t     prev_rc_in = -1;
+    bool        rc_in_changed;
 
     // value generated from PWM normalised to configured scale
-    int16_t    control_in;
+    int16_t     control_in;
 
     AP_Int16    radio_min;
     AP_Int16    radio_trim;
@@ -407,6 +411,9 @@ private:
 
     bool read_3pos_switch(AuxSwitchPos &ret) const WARN_IF_UNUSED;
     bool read_6pos_switch(int8_t& position) WARN_IF_UNUSED;
+
+    // return true if rc input value has changed by more than the deadzone
+    bool radio_input_changed(uint16_t rc_in);
 
     // Structure used to detect and debounce switch changes
     struct {
@@ -536,6 +543,7 @@ public:
         USE_CRSF_LQ_AS_RSSI     = (1U << 11), // returns CRSF link quality as RSSI value, instead of RSSI
         CRSF_FM_DISARM_STAR     = (1U << 12), // when disarmed, add a star at the end of the flight mode in CRSF telemetry
         ELRS_420KBAUD           = (1U << 13), // use 420kbaud for ELRS protocol
+        CLEAR_OVERRIDES_BY_RC   = (1U << 14), // clear MAVLink overrides if the pilot inputs any of roll/pitch/throttle/yaw
     };
 
     bool option_is_enabled(Option option) const {
@@ -653,6 +661,10 @@ private:
 
     void set_aux_cached(RC_Channel::AUX_FUNC aux_fn, RC_Channel::AuxSwitchPos pos);
 #endif
+
+    bool clear_overrides_by_rc(void) const {
+        return _options & uint32_t(Option::CLEAR_OVERRIDES_BY_RC);
+    }
 };
 
 RC_Channels &rc();

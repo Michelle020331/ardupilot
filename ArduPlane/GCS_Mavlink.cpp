@@ -929,35 +929,33 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_int_guided_slew_commands(const mavl
             return MAV_RESULT_DENIED;
         }
 
-         // the requested alt data might be relative or absolute
-        float new_target_alt = packet.z * 100;
-        float new_target_alt_rel = packet.z * 100 + plane.home.alt;
+        Location::AltFrame new_target_alt_frame;
 
-         // only global/relative/terrain frames are supported
-        switch(packet.frame) {
-            case MAV_FRAME_GLOBAL_RELATIVE_ALT: {
-                if   (is_equal(plane.guided_state.target_alt,new_target_alt_rel) ) { // compare two floats as near-enough
-                    // no need to process any new packet/s with the same ALT any further, if we are already doing it.
-                    return MAV_RESULT_ACCEPTED;
-                }
-                plane.guided_state.target_alt = new_target_alt_rel;
-                break;
+        float new_target_alt = packet.z * 100;
+        if (mavlink_coordinate_frame_to_location_alt_frame((MAV_FRAME)packet.frame, new_target_alt_frame)) {
+
+             // the requested alt data might be relative (to home)
+            if (new_target_alt_frame == Location::AltFrame::ABOVE_HOME) {
+                new_target_alt = packet.z * 100 + plane.home.alt;
             }
-            case MAV_FRAME_GLOBAL: {
-                if   (is_equal(plane.guided_state.target_alt,new_target_alt) ) {  // compare two floats as near-enough
-                    // no need to process any new packet/s with the same ALT any further, if we are already doing it.
-                    return MAV_RESULT_ACCEPTED;
-                }
-                plane.guided_state.target_alt = new_target_alt;
-                break;
+
+            // compare two floats as near-enough
+            if (is_equal(plane.guided_state.target_alt,new_target_alt) && plane.guided_state.target_alt_frame == new_target_alt_frame) {
+                // no need to process any new packet/s with the same ALT any further, if we are already doing it.
+                return MAV_RESULT_ACCEPTED;
             }
-            default:
-                //  MAV_RESULT_DENIED  means Command is invalid (is supported but has invalid parameters).
-                return MAV_RESULT_DENIED;
+        }
+        else{
+            return MAV_RESULT_DENIED;
         }
 
-        plane.guided_state.target_alt_frame = packet.frame;
-        plane.guided_state.last_target_alt = plane.current_loc.alt; // FIXME: Reference frame is not corrected for here
+        plane.guided_state.last_target_alt = plane.current_loc.alt;
+        plane.guided_state.last_target_alt_frame = plane.current_loc.get_alt_frame();
+
+        plane.guided_state.target_mav_frame = packet.frame;
+        plane.guided_state.target_alt_frame = new_target_alt_frame;
+        plane.guided_state.target_alt = new_target_alt;
+
         plane.guided_state.target_alt_time_ms = AP_HAL::millis();
 
         if (is_zero(packet.param3)) {
@@ -967,8 +965,9 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_int_guided_slew_commands(const mavl
             plane.guided_state.target_alt_accel = fabsf(packet.param3);
         }
 
-         // assign an acceleration direction
-        if (plane.guided_state.target_alt < plane.current_loc.alt) {
+         // assign an acceleration direction - this only works if the current and target frame are the same
+         // this should not be happening here - it shoudl be in ModeGuided::update_target_altitude()
+        if (plane.guided_state.last_target_alt_frame == plane.guided_state.target_alt_frame && plane.guided_state.target_alt < plane.current_loc.alt) {
             plane.guided_state.target_alt_accel *= -1.0f;
         }
         return MAV_RESULT_ACCEPTED;

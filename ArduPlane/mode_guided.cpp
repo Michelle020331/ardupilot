@@ -139,13 +139,17 @@ void ModeGuided::update_target_altitude()
         // then scale x100 to match last_target_alt and convert to a signed int32_t as it may be negative
         int32_t delta_amt_i = (int32_t)(100.0 * delta_amt_f); 
         Location temp {};
-        temp.alt = plane.guided_state.last_target_alt + delta_amt_i; // ...to avoid floats here, 
+        int32_t temp_alt = plane.guided_state.last_target_alt + delta_amt_i;
+        // Restore the last altitude that the plane had been flying
         if (is_positive(plane.guided_state.target_alt_accel)) {
-            temp.alt = MIN(plane.guided_state.target_alt, temp.alt);
+            temp_alt = MIN(plane.guided_state.target_alt, temp_alt);
         } else {
-            temp.alt = MAX(plane.guided_state.target_alt, temp.alt);
+            temp_alt = MAX(plane.guided_state.target_alt, temp_alt);
         }
+        temp.set_alt_cm(temp_alt, plane.guided_state.last_target_alt_frame); 
+        
         plane.guided_state.last_target_alt = temp.alt;
+        plane.guided_state.last_target_alt_frame = temp.get_alt_frame();
         plane.set_target_altitude_location(temp);
     } else 
 #endif // AP_PLANE_OFFBOARD_GUIDED_SLEW_ENABLED

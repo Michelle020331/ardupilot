@@ -49,11 +49,11 @@ void AP_AHRS::Write_AOA_SSA(void) const
 }
 
 // Write an attitude packet
-void AP_AHRS::Write_Attitude(const Vector3f &targets) const
+void AP_AHRS::Write_Attitude(const Vector3f &targets, uint64_t sample_time_us, float dt) const
 {
     const struct log_Attitude pkt{
         LOG_PACKET_HEADER_INIT(LOG_ATTITUDE_MSG),
-        time_us         : AP_HAL::micros64(),
+        time_us         : sample_time_us,
         control_roll    : (int16_t)targets.x,
         roll            : (int16_t)roll_sensor,
         control_pitch   : (int16_t)targets.y,
@@ -63,6 +63,7 @@ void AP_AHRS::Write_Attitude(const Vector3f &targets) const
         error_rp        : (uint16_t)(get_error_rp() * 100),
         error_yaw       : (uint16_t)(get_error_yaw() * 100),
         active          : uint8_t(active_EKF_type()),
+        sensor_dt       : dt
     };
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }
@@ -125,11 +126,11 @@ void AP_AHRS::write_video_stabilisation() const
 }
 
 // Write an attitude view packet
-void AP_AHRS_View::Write_AttitudeView(const Vector3f &targets) const
+void AP_AHRS_View::Write_AttitudeView(const Vector3f &targets, uint64_t sample_time_us, float dt) const
 {
     const struct log_Attitude pkt{
         LOG_PACKET_HEADER_INIT(LOG_ATTITUDE_MSG),
-        time_us         : AP_HAL::micros64(),
+        time_us         : sample_time_us,
         control_roll    : (int16_t)targets.x,
         roll            : (int16_t)roll_sensor,
         control_pitch   : (int16_t)targets.y,
@@ -139,6 +140,7 @@ void AP_AHRS_View::Write_AttitudeView(const Vector3f &targets) const
         error_rp        : (uint16_t)(get_error_rp() * 100),
         error_yaw       : (uint16_t)(get_error_yaw() * 100),
         active          : uint8_t(AP::ahrs().active_EKF_type()),
+        sensor_dt       : dt
     };
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }

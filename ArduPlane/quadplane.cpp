@@ -1952,7 +1952,7 @@ void QuadPlane::motors_output(bool run_rate_controller)
         // run low level rate controllers that only require IMU data and set loop time
         const float last_loop_time_s = AP::scheduler().get_last_loop_time_s();
         motors->set_dt(last_loop_time_s);
-        attitude_control->set_dt(last_loop_time_s);
+        attitude_control->set_dt(last_loop_time_s, AP::scheduler().get_loop_start_time_us());
         pos_control->set_dt(last_loop_time_s);
         attitude_control->rate_controller_run();
         last_att_control_ms = now;

@@ -98,6 +98,9 @@ public:
 #if AP_NOTIFY_NEOPIXEL_ENABLED
         Notify_LED_NeoPixelRGB              = (1 << 18), // NeoPixel AdaFruit 4544 Worldsemi WS2811
 #endif
+#if HAL_WITH_IO_MCU
+        Notify_LED_ProfiLED_IOMCU           = (1 << 19), // ProfiLED IOMCU
+#endif
         Notify_LED_MAX
     };
 

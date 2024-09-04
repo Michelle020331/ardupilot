@@ -68,6 +68,7 @@ enum iopage {
     PAGE_RAW_DSHOT_TELEM_5_8 = 205,
     PAGE_RAW_DSHOT_TELEM_9_12 = 206,
     PAGE_RAW_DSHOT_TELEM_13_16 = 207,
+    PAGE_PROFILED = 208,
 };
 
 // setup page registers
@@ -113,6 +114,8 @@ enum iopage {
 #define PAGE_REG_SETUP_FORCE_SAFETY_OFF 12
 #define PAGE_REG_SETUP_FORCE_SAFETY_ON  14
 #define FORCE_SAFETY_MAGIC 22027
+
+#define PROFILED_ENABLE_MAGIC 123
 
 struct page_config {
     uint16_t protocol_version;
@@ -228,4 +231,11 @@ struct page_dshot_telem {
     uint8_t   edt2_status[4];
     uint8_t   edt2_stress[4];
 #endif
+};
+
+struct __attribute__((packed, aligned(2))) page_profiled {
+    uint8_t magic;
+    uint8_t blue;
+    uint8_t red;
+    uint8_t green;
 };

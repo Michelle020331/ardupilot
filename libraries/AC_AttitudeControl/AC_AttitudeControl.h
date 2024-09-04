@@ -203,8 +203,14 @@ public:
     // Command an angular velocity with angular velocity smoothing using rate loops only with integrated rate error stabilization
     virtual void input_rate_bf_roll_pitch_yaw_3(float roll_rate_bf_cds, float pitch_rate_bf_cds, float yaw_rate_bf_cds);
 
+    // Command an angular velocity with angular velocity feedforward and smoothing without setting the attitude target
+    Vector3f input_rate_bf_roll_pitch_yaw_4(float roll_rate_bf_cds, float pitch_rate_bf_cds, float yaw_rate_bf_cds);
+
     // Command an angular step (i.e change) in body frame angle
     virtual void input_angle_step_bf_roll_pitch_yaw(float roll_angle_step_bf_cd, float pitch_angle_step_bf_cd, float yaw_angle_step_bf_cd);
+
+    // Command an angular rate step (i.e change) in body frame rate
+    virtual void input_rate_step_bf_roll_pitch_yaw(float roll_rate_step_bf_cd, float pitch_rate_step_bf_cd, float yaw_rate_step_bf_cd);
 
     // Command a thrust vector in the earth frame and a heading angle and/or rate
     virtual void input_thrust_vector_rate_heading(const Vector3f& thrust_vector, float heading_rate_cds, bool slew_yaw = true);
@@ -216,6 +222,12 @@ public:
 
     // Run angular velocity controller and send outputs to the motors
     virtual void rate_controller_run() = 0;
+
+    // reset target loop rate modifications
+    virtual void rate_controller_target_reset() {}
+
+    // optional variant to allow running with different dt
+    virtual void rate_controller_run_dt(float dt, const Vector3f& gyro) {}
 
     // Convert a 321-intrinsic euler angle derivative to an angular velocity vector
     void euler_rate_to_ang_vel(const Quaternion& att, const Vector3f& euler_rate_rads, Vector3f& ang_vel_rads);
@@ -431,6 +443,9 @@ public:
     // get the value of the PD scale that was used in the last loop, for logging
     const Vector3f &get_PD_scale_logging(void) const { return _pd_scale_used; }
 
+    // get the latest gyro value that was used by the rate controller
+    const Vector3f &get_gyro_latest(void) const { return _rate_gyro; }
+
     // User settable parameters
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -486,6 +501,9 @@ protected:
     AP_Float            _land_roll_mult;
     AP_Float            _land_pitch_mult;
     AP_Float            _land_yaw_mult;
+
+    // latest gyro value use by the rate_controller
+    Vector3f            _rate_gyro;
 
     // Intersampling period in seconds
     float               _dt;

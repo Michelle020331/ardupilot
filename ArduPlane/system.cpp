@@ -39,7 +39,7 @@ void Plane::init_ardupilot()
 #if AP_RANGEFINDER_ENABLED
     // initialise rangefinder
     rangefinder.set_log_rfnd_bit(MASK_LOG_SONAR);
-    rangefinder.init(ROTATION_PITCH_270);
+    rangefinder.init(rangefinder_orientation());
 #endif
 
     // initialise battery monitoring

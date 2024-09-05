@@ -505,12 +505,12 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm)
 float Aircraft::perpendicular_distance_to_rangefinder_surface() const
 {
     switch ((Rotation)sitl->sonar_rot.get()) {
-    case Rotation::ROTATION_PITCH_270:
-        return sitl->state.height_agl;
     case ROTATION_NONE ... ROTATION_YAW_315:
+        // assume these are avoidance sensors
         return sitl->measure_distance_at_angle_bf(location, sitl->sonar_rot.get()*45);
     default:
-        AP_BoardConfig::config_error("Bad simulated sonar rotation");
+        // assume all others are ground sensing rangefinders
+        return sitl->state.height_agl;
     }
 }
 
@@ -543,11 +543,6 @@ float Aircraft::rangefinder_range() const
         }
     }
 
-    if (fabs(roll) >= 90.0 || fabs(pitch) >= 90.0) {
-        // not going to hit the ground....
-        return INFINITY;
-    }
-
     float altitude = perpendicular_distance_to_rangefinder_surface();
 
     // sensor position offset in body frame
@@ -565,8 +560,17 @@ float Aircraft::rangefinder_range() const
         altitude -= relPosSensorEF.z;
     }
 
-    // adjust for apparent altitude with roll
-    altitude /= cosf(radians(roll)) * cosf(radians(pitch));
+    // adjust for rotation based on orientation of the sensor
+    Matrix3f rotmat;
+    sitl->state.quaternion.rotation_matrix(rotmat);
+    Vector3f v{1, 0, 0};
+    v.rotate((Rotation)sitl->sonar_rot.get());
+    v = rotmat * v;
+
+    if (!is_positive(v.z)) {
+        return INFINITY;
+    }
+    altitude /= v.z;
 
     // Add some noise on reading
     altitude += sitl->sonar_noise * rand_float();
